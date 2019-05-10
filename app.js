@@ -1,9 +1,12 @@
 const express=require('express');
 const bodyParser=require('body-parser');
 const feedRoutes=require('./routes/feed');
+const authRoutes=require('./routes/auth');
 const sequelize=require('./util/database');
 const uuidV4=require('uuid/v4');
 const multer=require('multer');
+const User=require('./models/user');
+const Post=require('./models/post');
 
 const app=express();
 const fileStorage=multer.diskStorage({
@@ -35,12 +38,17 @@ app.use((req,res,next)=>{
    next();
 });
 app.use('/feed',feedRoutes);
+app.use('/auth',authRoutes);
 app.use((error,req,res,next)=>{
    console.log(error);
    const status=error.statusCode || 500;
    const message=error.message;
    res.status(status).json({message:message});
 });
+
+//relationship
+User.hasMany(Post);
+Post.belongsTo(User);
 
 sequelize
     //.sync({force:true})
