@@ -3,10 +3,12 @@ const Post = require("../models/post");
 const path = require("path");
 const fs = require("fs");
 const User = require("../models/user");
+const io=require('../socket');
+const Sequelize=require('sequelize');
 
 exports.getPosts = async (req, res, next) => {
   try {
-    const posts = await Post.findAll();
+    const posts = await Post.findAll({order:Sequelize.literal('createdAt DESC')});
     res.status(200).json({
       posts: posts
     });
@@ -37,6 +39,10 @@ exports.createPost = async (req, res, next) => {
       content: content,
       imageUrl: req.file.path.replace("\\", "/"),
       creator: user.name
+    });
+    io.getIO().emit('posts',{
+      action:'create',
+      post:post
     });
     res.status(201).json({
       message: "Data added successfully!",
@@ -103,6 +109,10 @@ exports.updatePost = async (req, res, next) => {
     post.content = content;
     post.imageUrl = imageUrl;
     const result = await post.save();
+    io.getIO().emit('posts',{
+      action:'update',
+      post:post
+    });
     res.status(200).json({ message: "Post updated successfully!", post: result });
   } catch (err) {
     if (!err.statusCode) err.statusCode = 500;
@@ -126,6 +136,10 @@ exports.deletePost =async (req, res, next) => {
     }
     clearImage(post.imageUrl);
     await post.destroy();
+    io.getIO().emit('posts',{
+      action:'delete',
+      post:postId
+    });
     res.status(200).json({ message: "Deleted post successfully!" });
   }catch (err) {
     if (!err.statusCode) err.statusCode = 500;
